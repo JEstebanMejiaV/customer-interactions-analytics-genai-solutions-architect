@@ -1,0 +1,190 @@
+domain: customer-care
+dataProduct: interactions-history
+version: 1.0.0
+status: active
+id: 123e4567-e89b-12d3-a456-426614174000
+tenant: lla
+
+kind: DataContract
+apiVersion: v3.0.1
+
+description:
+  purpose: >
+    Provide a unified interaction history per customer account_number
+    for CRM and CX/Operations teams.
+  limitations: >
+    Only includes interactions from supported contact center platforms
+    (Genesys) and channels explicitly onboarded.
+  usage: >
+    Power Salesforce and other CRM systems with interaction history
+    and enable analysis of contact reasons, resolutions and sentiment.
+  authoritativeDefinitions:
+    - type: privacy-statement
+      url: https://lla.com/privacy
+    - type: api-docs
+      url: https://lla.com/docs/interactions-api
+
+# Infrastructure & servers (ejemplo con DynamoDB + S3)
+servers:
+  - server: interactions-dynamodb
+    type: dynamodb
+    awsAccountId: "123456789012"
+    region: us-east-1
+    table: interactions
+  - server: interactions-lake-s3
+    type: s3
+    prefix: curated/interactions/
+
+# Dataset, schema and quality
+schema:
+  - name: interactions
+    physicalName: interactions
+    physicalType: table
+    description: Customer care interactions enriched with GenAI summaries.
+    dataGranularityDescription: one row per customer interaction event
+    tags: ["customer-care", "crm", "genai"]
+
+    properties:
+      - name: account_number
+        businessName: Customer account number
+        logicalType: string
+        physicalType: varchar(32)
+        primaryKey: true
+        primaryKeyPosition: 1
+        required: true
+        partitioned: true        # PK en DynamoDB
+        partitionKeyPosition: 1
+        classification: confidential
+        tags: ["pii", "customer-id"]
+
+      - name: timestamp
+        businessName: Interaction timestamp
+        logicalType: datetime
+        physicalType: timestamp
+        primaryKey: true
+        primaryKeyPosition: 2
+        required: true
+        partitioned: false
+        classification: internal
+
+      - name: interaction_id
+        businessName: Unique interaction identifier
+        logicalType: string
+        physicalType: varchar(64)
+        required: true
+        classification: internal
+
+      - name: channel
+        businessName: Channel of interaction
+        logicalType: string
+        physicalType: varchar(16)
+        required: true
+        description: voice | chat | whatsapp | email | other
+        classification: internal
+
+      - name: agent_id
+        businessName: Agent identifier
+        logicalType: string
+        physicalType: varchar(32)
+        required: false
+        classification: restricted
+
+      - name: reason
+        businessName: Contact reason
+        logicalType: string
+        physicalType: varchar(64)
+        required: false
+        classification: internal
+
+      - name: solution
+        businessName: Resolution provided
+        logicalType: string
+        physicalType: varchar(256)
+        required: false
+        classification: internal
+
+      - name: summary
+        businessName: GenAI interaction summary
+        logicalType: string
+        physicalType: text
+        required: false
+        classification: confidential
+        tags: ["genai-output"]
+
+      - name: sentiment
+        businessName: Aggregate sentiment label
+        logicalType: string
+        physicalType: varchar(16)
+        required: false
+        description: negative | neutral | positive
+        classification: internal
+
+    quality:
+      - rule: notNull_account_number
+        type: library
+        dimension: completeness
+        description: account_number must not be null
+        severity: error
+        schedule: "*/15 * * * *"
+        scheduler: cron
+
+      - rule: recent_timestamp
+        type: custom
+        dimension: timeliness
+        description: timestamp must not be more than 30 days in the past for near-real-time feed
+        severity: warning
+        schedule: "*/30 * * * *"
+        scheduler: cron
+
+      - rule: valid_channel_values
+        type: custom
+        dimension: validity
+        description: channel must be in [voice, chat, whatsapp, email, other]
+        severity: error
+        schedule: "0 * * * *"
+        scheduler: cron
+
+# SLA (ejemplo alineado con tu batch + near real time)
+slaDefaultElement: interactions.timestamp
+slaProperties:
+  - property: latency
+    value: 15
+    unit: m         # 15 minutos para near real time
+    element: interactions.timestamp
+  - property: retention
+    value: 5
+    unit: y         # mantener 5 años
+    element: interactions.timestamp
+  - property: frequency
+    value: 1
+    unit: d         # batch diario completo
+    element: interactions.timestamp
+
+# Roles y acceso
+roles:
+  - role: crm_read_role
+    access: read
+    firstLevelApprovers: CRM Product Owner
+  - role: cx_analyst_role
+    access: read
+    firstLevelApprovers: CX Manager
+  - role: data_engineer_role
+    access: write
+    firstLevelApprovers: Data Platform Lead
+
+# Relación con la API que definiste
+customProperties:
+  - property: exposedViaApi
+    value: interactions-history-api
+  - property: apiBasePath
+    value: /interactions
+  - property: primaryConsumerSystems
+    value:
+      - Salesforce CRM
+      - Internal CX dashboards
+
+contractCreatedTs: "2025-11-15T12:00:00Z"
+tags:
+  - customer-experience
+  - contact-center
+  - genai
