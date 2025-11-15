@@ -1,0 +1,251 @@
+openapi: 3.0.3
+info:
+  title: Customer Care Interactions API
+  version: 1.0.0
+  description: >
+    API to retrieve customer interaction history per account_number.
+    Designed for CRM (Salesforce) and CX/Operations use cases.
+
+servers:
+  - url: https://api.lla.com
+    description: Production
+  - url: https://api.sandbox.lla.com
+    description: Sandbox
+
+tags:
+  - name: Interactions
+    description: Customer care interaction history
+
+paths:
+  /interactions/{account_number}:
+    get:
+      tags:
+        - Interactions
+      summary: Get interaction history for a specific account
+      description: >
+        Returns the interaction history for the given account_number.
+        Supports pagination and optional filtering by date range and channel.
+      operationId: getInteractionsByAccount
+      parameters:
+        - name: account_number
+          in: path
+          required: true
+          description: Customer account number.
+          schema:
+            type: string
+            maxLength: 32
+
+        - name: from
+          in: query
+          required: false
+          description: >
+            Start of date range filter (inclusive), in ISO 8601 format.
+            Example: 2025-11-01T00:00:00Z
+          schema:
+            type: string
+            format: date-time
+
+        - name: to
+          in: query
+          required: false
+          description: >
+            End of date range filter (exclusive), in ISO 8601 format.
+            Example: 2025-11-06T00:00:00Z
+          schema:
+            type: string
+            format: date-time
+
+        - name: channel
+          in: query
+          required: false
+          description: Filter by interaction channel.
+          schema:
+            type: string
+            enum: [voice, chat, whatsapp, email, other]
+
+        - name: limit
+          in: query
+          required: false
+          description: >
+            Maximum number of items to return in this page.
+            Used together with cursor for pagination.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+            default: 50
+
+        - name: cursor
+          in: query
+          required: false
+          description: >
+            Pagination cursor. If provided, the API returns the next page
+            of results starting after this cursor value.
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Interaction history successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InteractionsResponse'
+              examples:
+                sample:
+                  summary: Example response
+                  value:
+                    account_number: "123456789"
+                    items:
+                      - interaction_id: "int-001"
+                        timestamp: "2025-11-05T14:32:00Z"
+                        reason: "billing"
+                        solution: "invoice resent to email"
+                        summary: "Customer called about missing invoice; agent verified account and resent it."
+                        channel: "voice"
+                        agent_id: "agent-123"
+                        sentiment: "neutral"
+                    next_cursor: "eyJwYWdlIjoyfQ=="
+        '400':
+          description: Bad request (invalid parameters).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_date:
+                  summary: Invalid date filter
+                  value:
+                    code: "BAD_REQUEST"
+                    message: "Parameter 'from' must be a valid ISO 8601 date-time."
+        '404':
+          description: Account not found or no interactions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: No interactions for this account
+                  value:
+                    code: "NOT_FOUND"
+                    message: "No interactions found for account_number 123456789."
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                internal_error:
+                  summary: Unexpected error
+                  value:
+                    code: "INTERNAL_ERROR"
+                    message: "An unexpected error occurred."
+
+      security:
+        - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key required to access the Interactions API.
+
+  schemas:
+    Interaction:
+      type: object
+      description: Single customer care interaction.
+      properties:
+        interaction_id:
+          type: string
+          description: Unique identifier for the interaction.
+          example: int-001
+        timestamp:
+          type: string
+          format: date-time
+          description: Interaction timestamp in ISO 8601 format.
+          example: 2025-11-05T14:32:00Z
+        channel:
+          type: string
+          description: Interaction channel.
+          enum: [voice, chat, whatsapp, email, other]
+          example: voice
+        agent_id:
+          type: string
+          nullable: true
+          description: Identifier of the agent handling the interaction, if applicable.
+          example: agent-123
+        reason:
+          type: string
+          nullable: true
+          description: Contact reason (normalized label).
+          example: billing
+        solution:
+          type: string
+          nullable: true
+          description: Resolution or outcome of the interaction.
+          example: invoice resent to email
+        summary:
+          type: string
+          nullable: true
+          description: >
+            Generative AI summary of the interaction conversation
+            between customer and agent or system.
+          example: >
+            Customer called about missing invoice; agent verified account
+            and resent it.
+        sentiment:
+          type: string
+          nullable: true
+          description: Overall sentiment for the interaction.
+          enum: [negative, neutral, positive]
+          example: neutral
+
+    InteractionsResponse:
+      type: object
+      description: Paginated interaction history for a given account_number.
+      properties:
+        account_number:
+          type: string
+          description: Customer account number.
+          example: "123456789"
+        items:
+          type: array
+          description: List of interactions for the requested page.
+          items:
+            $ref: '#/components/schemas/Interaction'
+        next_cursor:
+          type: string
+          nullable: true
+          description: >
+            Cursor for the next page of results.
+            Null or missing if there are no more pages.
+          example: "eyJwYWdlIjoyfQ=="
+      required:
+        - account_number
+        - items
+
+    ErrorResponse:
+      type: object
+      description: Standard error payload.
+      properties:
+        code:
+          type: string
+          description: Application level error code.
+          example: BAD_REQUEST
+        message:
+          type: string
+          description: Human readable error description.
+          example: Parameter 'from' must be a valid ISO 8601 date-time.
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Optional structured details.
+      required:
+        - code
+        - message
