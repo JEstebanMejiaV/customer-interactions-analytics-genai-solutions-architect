@@ -14,6 +14,6 @@ COPY app ./app
 
 EXPOSE 8080
 
-# Nota: uvicorn recarga en desarrollo con "--reload", pero en contenedorc lo dejamos simple. En local se puede usar "uvicorn app.api:app --reload"
-
+# Nota: uvicorn recarga en desarrollo con "--reload", pero en contenedor
+# lo dejamos simple. En local se puede usar "uvicorn app.api:app --reload".
 CMD ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8080"]
