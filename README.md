@@ -10,14 +10,12 @@ This project:
 - Is containerized with **Docker**.
 
 
----
-
 ## 1. Requirements
 
 - Docker installed.
 - Optionally, Python 3.12+ if you want to run it without Docker.
 
----
+
 
 ## 2. Build the image
 
@@ -27,7 +25,7 @@ In the project root (where the `Dockerfile` lives):
 docker build -t interactions-api .
 ```
 
----
+
 
 ## 3. Run the container
 
@@ -41,7 +39,7 @@ This will:
 - Create a local `interactions.db` SQLite file if it does not exist.
 - Insert a few seed rows for accounts `ACC-001` and `ACC-002`.
 
----
+
 
 ## 4. Test the API
 
@@ -103,7 +101,7 @@ If there are no more interactions, `next_cursor` will be `null`.
    - optionally `cursor` with the value returned by the previous call.
 4. Send the request and inspect the JSON response.
 
----
+
 
 ## 5. Run without Docker (optional)
 
@@ -119,7 +117,7 @@ uvicorn app.api:app --reload --port 8080
 
 Then use the same curl or Postman calls as above.
 
----
+
 
 ## 6. Optional: AWS CDK example (API Gateway + Lambda + DynamoDB)
 
