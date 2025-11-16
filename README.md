@@ -1,4 +1,26 @@
-# Interactions API
+# Solutions Architect (Customer Interactions Analytics with Gen AI on AWS)
+## 1. Project goal
+
+This repo focuses on the hands-on part of the challenge:
+
+- Implement `GET /interactions/{account_number}` with cursor-based pagination.
+- Serve the endpoint via a FastAPI HTTP service.
+- Persist and read interactions from a lightweight local SQLite database.
+- Package everything in a Docker image that can be built and run locally. :contentReference[oaicite:1]{index=1}
+
+
+## 2. Repository structure (high-level)
+
+- `app/` – FastAPI application (routes, models, DB access, pagination helpers).
+- `contracts/` – API contract examples and sample payloads.
+- `infra/` – AWS CDK example showing API Gateway + Lambda + DynamoDB.
+- `lambda/` – Lambda-oriented code aligned with the CDK stack.
+- `slides/` – Architecture slides for the overall GenAI customer-interactions platform.
+- `tests/` – Unit tests for the Interactions API.
+- `Dockerfile` – Container image definition for the FastAPI service.
+- `requirements.txt` – Python dependencies.
+
+# 3. Interactions API
 
 Minimal implementation of `GET /interactions/{account_number}` for a technical challenge.
 
@@ -10,14 +32,14 @@ This project:
 - Is containerized with **Docker**.
 
 
-## 1. Requirements
+## 3.1. Requirements
 
 - Docker installed.
 - Optionally, Python 3.12+ if you want to run it without Docker.
 
 
 
-## 2. Build the image
+## 3.2. Build the image
 
 In the project root (where the `Dockerfile` lives):
 
@@ -27,7 +49,7 @@ docker build -t interactions-api .
 
 
 
-## 3. Run the container
+## 3.3. Run the container
 
 ```bash
 docker run -p 8080:8080 interactions-api
@@ -145,3 +167,6 @@ cdk synth
 From here you could deploy with `cdk deploy` (after configuring your AWS
 account and region), but that is intentionally outside the scope of this
 minimal example.
+
+
+# Autor: Juan Esteban Mejía Velásquez
