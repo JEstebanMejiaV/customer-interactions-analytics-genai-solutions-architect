@@ -1,17 +1,9 @@
-
-from app import db
-from app.api import app, encode_cursor, decode_cursor
+import pytest
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
-
-import sys
-from pathlib import Path
-
-# Asegura que la raíz del repo esté en sys.path
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+from app import db
+from app.api import app, encode_cursor, decode_cursor
 
 
 def _client_with_temp_db(tmp_path):
